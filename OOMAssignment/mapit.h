@@ -1,13 +1,15 @@
 #pragma once
 #include "map.h"
 
+// Forward declaration of pair
 template <class KT, class VT>
 class pair;
 
+// Forward declaration of map
 template <class KT, class VT>
 class map;
 
-// Templated iterator
+// Template map iterator
 template <class KT, class VT>
 class mapit
 {
@@ -19,6 +21,7 @@ public:
 	typedef pair<KT, VT>* Pointer;
 	typedef map<KT, VT> maptype;
 	
+	// Constructor
 	mapit(maptype *pmap, size_type n)
 	{
 		map = pmap;
@@ -94,8 +97,15 @@ public:
 	{
 		return &(operator*());
 	}
+
+	// Make map a friend of this class so that it can access private members (pos)
+	friend map <KT, VT>;
+
 private:
+	// Reference to the map
 	maptype *map;
+
+	// Position within the map
 	size_type pos;
 };
 

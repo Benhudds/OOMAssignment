@@ -11,126 +11,42 @@ public:
 	VT value;
 	typedef pair<KT, VT> maptype;
 
-	//pair(KT const & newKey, VT const & newValue) : key(newKey), value(newValue) {}
-	pair(KT newKey) : key(newKey)
+	// Constructor called when only a key is given
+	pair(KT newKey) : key(newKey) { }
+
+	// Constructor called with key and value
+	pair(KT newKey, VT newValue) : key(newKey), value(newValue) { }
+
+	// Copy constructor
+	pair (const pair &obj) : key(obj.key), value(obj.value) { }
+
+	// Default contructor
+	pair() : key(), value() { }
+
+	// Destructor
+	~pair() { }
+
+	// Assignment operator - copy
+	maptype& operator=(const maptype& other)
 	{
-		//key = new KT(newKey);
-
-	}
-
-	pair(KT newKey, VT newValue) : key(newKey), value(newValue)
-	{
-		//key = new KT(newKey);
-		//key = new KT;
-		//key = &newKey;
-
-		//value = new VT(newValue);
-		/*value = new VT;
-		value = &newValue;*/
-	}
-
-	pair (const pair &obj) : key(obj.key), value(obj.value)
-	{
-		/*key = new KT;
-		*key = *obj.key;
-
-		value = new VT;
-		*value = *obj.value;*/
-	}
-
-	pair() : key(), value()
-	{
-		//key = new KT;
-		//key = nullptr;
-
-		//value = new VT;
-		//value = nullptr;
-	}
-
-	~pair()
-	{
-		/*delete key;
-		delete value;*/
-	}
-	//CTwoInts CTwoInts::operator = ( CTwoInts operand )
-	//pair<KT, VT> operator=(pair<KT, VT> newPair) { key = newPair->key, value = newPair->value; return *this; }
-	/*pair<KT, VT> operator=(pair<KT, VT>* newPair)
-	{
-		key = newPair->key;
-		value = newPair->value;
+		key = other.key;
+		value = other.value;
 		return *this;
-	}*/
+	}
 
-	//pair<KT, VT>& operator=(pair<KT, VT>* other);
-	pair<KT, VT>& operator=(const pair<KT, VT>& other);
-
-	pair<KT, VT>& operator=(VT value)
+	// Assignment operator - value mutation
+	maptype& operator=(VT value)
 	{
 		this.value = value;
 		return *this;
 	}
-
-	/*pair<KT, VT>& operator=(const pair<KT, VT> newPair) { key = newPair->key; value = newPair->value; return this; }
-	pair<KT, VT>& operator=(const pair<KT, VT>* newPair) { key = newPair->key; value = newPair->value; return this; }*/
 };
 
-//template <typename KT, typename VT>
-//pair<KT, VT>& pair<KT, VT>::operator=(pair<KT, VT>* other)
-//{
-//	
-//	return *this;
-//}
-
-template <class KT, class VT>
-pair<KT, VT>& pair<KT, VT>::operator=(const pair<KT, VT>& other)
-{
-	key = other.key;
-	value = other.value;
-	return *this;
-
-	//if (this == nullptr)
-	//{
-	//	// Use the copy constructor
-	//	*this = *(new pair<KT, VT>(other));
-
-	//	//*this = *(new pair<KT, VT>());
-	//}
-
-	////this = pair();
-	//if (this != &other)
-	//{
-	//	if (key != nullptr)
-	//	{
-	//		delete key;
-	//	}
-
-	//	if (value != nullptr)
-	//	{
-	//		delete value;
-	//	}
-
-	//	key = other.value == nullptr ? nullptr : new KT(*other.key);
-
-	//	if (other.value == nullptr)
-	//	{
-	//		value = nullptr;
-	//	}
-	//	else
-	//	{
-	//		value = new VT(*other.value);
-	//	}
-
-	//	/*key = other.key;
-	//	value = other.value;*/
-	//}
-	//return *this;
-}
-
-
-// Templated comparison function
+// Templated comparison function pointer
 template<typename KT>
 using cmp = bool(*)(KT k1, KT k2);
 
+// Default less than comparison operation
 template<class KT>
 bool less(KT a, KT b)
 {
@@ -150,6 +66,7 @@ public:
 	typedef mapit<KT, VT> iterator;
 	typedef ptrdiff_t difference_type;
 	typedef pair<KT, VT> value_type;;
+	typedef size_t size_type;
 	
 	map();
 	map(cmp<KT> comparator);
@@ -171,9 +88,7 @@ public:
 		{
 			if (i == numElements)
 			{
-				elements[i] = *(new pair<KT, VT>(key));
-				numElements++;
-				return elements[i].value;
+				return insertElement(i, key);
 			}
 
 			// If this elements is greater than the key
@@ -186,19 +101,24 @@ public:
 					return elements[i].value;
 				}
 
-				// Otherwise insert
-				// Ensure there is space to insert
-				checkSizeAndExpand();
-
-				// Start by shuffling up all the remaining elements
-				shuffleUp(i);
-
-				// Insert a new element with nullptr as value and then return
-				elements[i] = *(new pair<KT, VT>(key));
-				numElements++;
-				return elements[i].value;
+				return insertElement(i, key);
 			}
 		}
+	}
+
+	VT& insertElement(size_type index, KT key)
+	{
+		// Otherwise insert
+		// Ensure there is space to insert
+		checkSizeAndExpand();
+
+		// Start by shuffling up all the remaining elements
+		shuffleUp(index);
+
+		// Insert a new element with nullptr as value and then return
+		elements[index] = *(new pair<KT, VT>(key));
+		numElements++;
+		return elements[index].value;
 	}
 
 	void checkSizeAndExpand()
@@ -227,10 +147,19 @@ public:
 
 	void shuffleUp(const int pivot)
 	{
-		// Shuffle up all elements from the current position by the given amount
+		// Shuffle the elements up from the current position
 		for (int j = numElements; j > pivot; j--)
 		{
 			elements[j] = elements[j - 1];
+		}
+	}
+
+	void shuffleDown(const int pivot)
+	{
+		// Shuffle the elements from the current position
+		for(int j = pivot; j < numElements; j++)
+		{
+			elements[j] = elements[j + 1];
 		}
 	}
 
@@ -301,6 +230,42 @@ public:
 	iterator find(KT key)
 	{
 		return lookupPair(key, 0, numElements);
+	}
+
+	iterator erase(const iterator it) noexcept
+	{
+		shuffleDown(it.pos);
+		numElements--;
+		
+		return iterator(this, it.pos);
+	}
+
+	size_type erase(const KT& key) noexcept
+	{
+		iterator pair = find(key);
+		if (pair != end())
+		{
+			shuffleDown(pair.pos);
+			numElements--;
+			return 1;
+		}
+		else
+		{
+			return 0;
+		}
+	}
+
+	void clear() noexcept
+	{
+		delete[] & elements[0];
+		elements = new pair<KT, VT>[arrsize];
+
+		numElements = 0;
+	}
+
+	size_type arraysize()
+	{
+		return arrsize;
 	}
 };
 
