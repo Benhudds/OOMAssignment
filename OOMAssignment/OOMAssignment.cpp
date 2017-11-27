@@ -91,7 +91,7 @@ int main()
 	auto stdit = stdmap.find('a');
 	std::cout << "stdmap find returned iterator for parameter 'a' with key " << stdit->first << " and value " << stdit->second << std::endl;
 	auto adtit = adtmap.find('a');
-	std::cout << "adtmap find returned iterator for parameter 'a' with key " << adtit->key << " and value " << adtit->value << std::endl;
+	std::cout << "adtmap find returned iterator for parameter 'a' with key " << adtit->first << " and value " << adtit->second << std::endl;
 
 	std::cout << std::endl;
 
@@ -110,7 +110,7 @@ int main()
 	std::cout << "adpmap - size before erase " << adtmap.size() << std::endl;
 	adtit = adtmap.erase(adtit);
 	std::cout << "adtmap - size after erase " << adtmap.size() << std::endl;
-	std::cout << "adtmap returned iterator after erase with key " << adtit->key << " and value " << adtit->value << std::endl;
+	std::cout << "adtmap returned iterator after erase with key " << adtit->first << " and value " << adtit->second << std::endl;
 	
 	// Using the [] operator
 	std::cout << std::endl << "Using the [] operator" << std::endl;
@@ -150,6 +150,7 @@ int main()
 		adtmap[char(97 + i)] = i;
 	}
 
+	std::cout << "Number of elements in adtmap = " << adtmap.size() << std::endl;
 	std::cout << "Post addition of items adtmap array size = " << adtmap.arraysize() << std::endl;
 
 	// Validity of data inserted
@@ -157,13 +158,41 @@ int main()
 
 	for(int i = 0; i < 11 ; i++)
 	{
-		std::cout << adtmap[char(97 + i)] << std::endl;
+		std::cout << adtmap[char(97 + i)] << ", ";
 	}
 
+	std::cout << std::endl;
+
+	// Use of iterator
+	std::cout << std::endl << "Use of iterator" << std::endl;
+
+	for(auto it = adtmap.begin(); it != adtmap.end(); it++)
+	{
+		std::cout << "key = " << it->first << " and value = " << it->second << std::endl;
+	}
+
+	std::cout << "reverse" << std::endl;
+
+	for(auto it = adtmap.rend(); it != adtmap.rbegin(); it--)
+	{
+		std::cout << "key = " << it->first << " and value = " << it->second << std::endl;
+	}
+
+	// Attempting to erase an element out of range
+	std::cout << std::endl << "Attempting to erase an element out of range in the collection" << std::endl;
+
+	auto outOfRange = adtmap.end();
 	
+	try
+	{
+		adtmap.erase(outOfRange);
 
-
-
+		std::cout << "Exception not thrown" << std::endl;
+	}
+	catch (MapException e)
+	{
+		std::cout << "Exception was thrown " << std::endl;
+	}
 
 
 	std::map<char, int> stlmap;
@@ -188,7 +217,7 @@ int main()
 
 	for(auto it = testmap.begin(); it != testmap.end(); it++)
 	{
-		std::cout << it->key << std::endl;
+		std::cout << it->first << std::endl;
 		
 	}
 
@@ -217,9 +246,9 @@ int main()
 	auto it = stlmap.find('a');
 	auto ita = testmap.find('a');
 	std::cout << "&&" << it->first << std::endl;
-	std::cout << "**" << ita->key << std::endl;
+	std::cout << "**" << ita->first << std::endl;
 
-	ita->key;
+	ita->first;
 
 	// print content:
 	std::cout << "elements in stlmap:" << '\n';

@@ -1,27 +1,28 @@
 #pragma once
 #include "stdafx.h"
 #include "mapit.h"
+#include "exceptions.h"
 
 template<typename KT, typename VT>
 class pair
 {
 private:
 public:
-	KT key;
-	VT value;
+	KT first;
+	VT second;
 	typedef pair<KT, VT> maptype;
 
 	// Constructor called when only a key is given
-	pair(KT newKey) : key(newKey) { }
+	pair(KT newKey) : first(newKey) { }
 
 	// Constructor called with key and value
-	pair(KT newKey, VT newValue) : key(newKey), value(newValue) { }
+	pair(KT newKey, VT newValue) : first(newKey), second(newValue) { }
 
 	// Copy constructor
-	pair (const pair &obj) : key(obj.key), value(obj.value) { }
+	pair (const pair &obj) : first(obj.first), second(obj.second) { }
 
 	// Default contructor
-	pair() : key(), value() { }
+	pair() : first(), second() { }
 
 	// Destructor
 	~pair() { }
@@ -29,15 +30,15 @@ public:
 	// Assignment operator - copy
 	maptype& operator=(const maptype& other)
 	{
-		key = other.key;
-		value = other.value;
+		first = other.first;
+		second = other.second;
 		return *this;
 	}
 
 	// Assignment operator - value mutation
 	maptype& operator=(VT value)
 	{
-		this.value = value;
+		this.second = value;
 		return *this;
 	}
 };
@@ -57,144 +58,148 @@ bool less(KT a, KT b)
 template <class KT, class VT>
 class map
 {
-private:
-	cmp<KT> comp;
-	int arrsize = 10;
-	pair<KT, VT> * elements;
+	// Typedefs
 public:
-	size_t numElements = 0;
-	typedef mapit<KT, VT> iterator;
-	typedef ptrdiff_t difference_type;
-	typedef pair<KT, VT> value_type;;
-	typedef size_t size_type;
+	// Key type
+	typedef KT key_type;
+
+	// Value type
+	typedef VT value_type;
 	
-	map();
-	map(cmp<KT> comparator);
-	~map();
-	void insert(KT key, VT value);
-	void shrinkToFit();
-	VT lookup(KT key);
-	VT linearlookup(KT key);
-	VT binarylookup(KT key, int start, int end);
-	VT& operator[](KT key)
+	// Self type
+	typedef map<KT, VT> self_type;
+
+	// Iterator typedef
+	typedef mapit<KT, VT> iterator;
+
+	// Type to be stored by the map
+	typedef pair<KT, VT> element_type;
+
+	// Size type typedef
+	// Uses size_t for greater indexing ranges when unsigned int may be too small (ie. on 64bit machines)
+	typedef size_t size_type;
+
+	//Friendships
+public:
+	// Allows iterator access to private operators
+	friend iterator;
+
+	// Private members
+private:
+	// Comparison function reference
+	// Required to return a bool with value true if the first element should precede the second
+	cmp<KT> comparator;
+
+	// Array of elements
+	// Initialized in constructor
+	element_type * elements;
+
+	// Internal array size
+	// Defaults to value 10
+	size_type arrsize = 10;
+
+	// Number of elements currently in the map
+	size_type numElements = 0;
+
+	// Constructors
+public:	
+	// Default constructor
+	// Uses the less than operator for comparison
+	map()
 	{
-		return findOrInsert(key);
+		comparator = less;
+
+		// Initialise the array with the default size of 10
+		elements = new element_type[arrsize];
 	}
 
-	VT& findOrInsert(KT key)
+	// Constructor
+	// Takes size the map should assume on creation
+	explicit map(const size_type size)
 	{
-		// Run through looking for first key greater than the key
-		for(int i = 0; i <= numElements; i++)
-		{
-			if (i == numElements)
-			{
-				return insertElement(i, key);
-			}
+		comparator = less;
 
-			// If this elements is greater than the key
-			if (!comp(elements[i].key, key))
-			{
-				// Check for equality
-				if (!comp(key, elements[i].key))
-				{
-					// Return if equal
-					return elements[i].value;
-				}
-
-				return insertElement(i, key);
-			}
-		}
+		arrsize = size;
+		elements = new element_type[arrsize];
 	}
 
-	VT& insertElement(size_type index, KT key)
+	// Constructor
+	// Takes a comparison operator given by the user
+	explicit map(const cmp<KT> cmp)
 	{
-		// Otherwise insert
-		// Ensure there is space to insert
-		checkSizeAndExpand();
+		comparator = cmp;
 
-		// Start by shuffling up all the remaining elements
-		shuffleUp(index);
-
-		// Insert a new element with nullptr as value and then return
-		elements[index] = *(new pair<KT, VT>(key));
-		numElements++;
-		return elements[index].value;
+		// Initialise the array with the default size of 10
+		elements = new pair<KT, VT>[arrsize];
 	}
 
-	void checkSizeAndExpand()
+	// Constructor
+	// Takes a comparison operator given by the user and size the map should assume on creation
+	map(const cmp<KT> cmp, const size_type size)
 	{
-		// If the array is full
-		if (numElements == arrsize)
-		{
-			// Expand the array
-			arrsize *= 2;
-			//pair<KT, VT>* newArr[size];
-			pair<KT, VT> * newArr = new pair<KT, VT>[arrsize];
+		comparator = cmp;
 
-			// Copy the contents and delete the old values
-			for (int i = 0; i < arrsize / 2; i++)
-			{
-				newArr[i] = elements[i];
-			}
-
-			// Delete the old reference
-			delete[] & elements[0];
-
-			// Replace with new array reference
-			elements = newArr;
-		}
+		arrsize = size;
+		// Initialise the array with the default size of 10
+		elements = new pair<KT, VT>[arrsize];
 	}
 
-	void shuffleUp(const int pivot)
+	// Destructor
+	~map()
 	{
-		// Shuffle the elements up from the current position
-		for (int j = numElements; j > pivot; j--)
-		{
-			elements[j] = elements[j - 1];
-		}
+		// Calls the destructor for every element (if there is one)
+		// Deallocates the memory for the structure itself
+		delete[] elements;
 	}
 
-	void shuffleDown(const int pivot)
-	{
-		// Shuffle the elements from the current position
-		for(int j = pivot; j < numElements; j++)
-		{
-			elements[j] = elements[j + 1];
-		}
-	}
-
-	const VT& operator[](const KT key)const
-	{
-		return lookup(key);
-	}
-
-	value_type& operator[](const size_t index)
+	// Operators
+private:
+	// Array operator
+	// Returns element type (pair<KT, VT>) at the given index in the array
+	// For use by the iterator, hence private and accessed by friendship
+	element_type& operator[](const size_t index)
 	{
 		return elements[index];
 	}
 
-	map<KT, VT>& operator=(VT value)
+	// Operators
+public:
+	// Array operator
+	// Finds the item if it exists in the map
+	// Creates a new item without a key for assignment if it does not
+	value_type& operator[](const key_type key)
+	{
+		return findOrInsert(key, 0, numElements);
+	}
+
+	// Assignment operator
+	// Used in conjunction with array operator
+	// Assigns the parameterized value to the value returned by array operator
+	self_type& operator=(value_type value)
 	{
 		return *this;
 	}
 
-	size_t size() const {
-		return numElements;
+	// Private methods
+private:
+	// Comparator method
+	// Called when using the comparison function, be it less or one defined by the user
+	// Required in cases where the user defined function throws an exception
+	// Should not compile if operator< not implemented for key_type
+	bool comp(key_type first, key_type second)
+	{
+		try
+		{
+			return comparator(first, second);
+		}
+		catch (...)
+		{
+			throw;
+		}
 	}
 
-	iterator begin()
+	pair<iterator, bool> insert(key_type key, value_type value, const size_type first, const size_type last)
 	{
-		return iterator(this, 0);
-	}
-
-	iterator end()
-	{
-		return iterator(this, size());
-	}
-
-	iterator lookupPair(KT key, const int first, const int last)
-	{
-
 		// Base case - reached an array of size 1
 		// This could potentially by the correct key so we must check
 		// If it is not we need to break out after the check
@@ -209,10 +214,167 @@ public:
 		const int mid = first + (last - first) / 2;
 
 		// Split the array and recurse down the correct half
-		if (!comp(elements[mid].key, key))
+		if (!comp(elements[mid].first, key))
 		{
 			// Equality check
-			if (!comp(key, elements[mid].key))
+			if (!comp(key, elements[mid].first))
+			{
+				// Return iterator and failure to insert
+				return pair<iterator, bool>(iterator(this, mid), false);
+			}
+
+			// Recurse left
+			return lastPass == true ? insert(first, key, value) : insert(key, value, first, mid);
+		}
+
+		// Recurse right
+		return lastPass == true ? insert(last, key, value) : insert(key, value, mid, last);
+	}
+
+	// Method that inserts an item at the given index with the given key and value
+	// Returns an iterator to the item and a true bool indicating it has been inserted
+	pair<iterator, bool> insert(size_type index, key_type key, value_type value)
+	{
+		insertElement(index, key, value);
+		return pair<iterator, bool>(iterator(this, index), true);
+	}
+
+	// Method that returns the value type associated to the given key
+	// If the key does not exist in the map then a new element type is created
+	// New element type has default unassigned value type
+	value_type& findOrInsert(key_type key, const size_type first, const size_type last)
+	{
+		// Base case - reached an array of size 1
+		// This could potentially by the correct key so we must check
+		// If it is not we need to break out after the check
+		bool lastPass = false;
+		if ((last - first) <= 1)
+		{
+			lastPass = true;
+		}
+
+		// Recursive case
+		// Find midpoint
+		const int mid = first + (last - first) / 2;
+
+		// Split the array and recurse down the correct half
+		if (!comp(elements[mid].first, key))
+		{
+			// Equality check
+			if (!comp(key, elements[mid].first))
+			{
+				// Return value
+				return elements[mid].second;
+			}
+
+			// Recurse left
+			return lastPass == true ? insertElement(first, key) : findOrInsert(key, first, mid);
+		}
+
+		// Recurse right
+		return lastPass == true ? insertElement(last, key) : findOrInsert(key, mid, last);
+	}
+
+	// Method to insert a new element type using the given key and the index
+	// Returns a value type with default value
+	value_type& insertElement(const size_type index, key_type key)
+	{
+		// Ensure there is space to insert
+		checkSizeAndExpand();
+
+		// Start by shuffling up all the remaining elements
+		shuffleUp(index);
+
+		// Insert a new element with nullptr as value and then return
+		elements[index] = *(new element_type(key));
+		numElements++;
+		return elements[index].second;
+	}
+
+	// Method to insert a new element type using the given key and the index
+	// Returns a value type with default value
+	value_type& insertElement(const size_type index, key_type key, value_type value)
+	{
+		// Ensure there is space to insert
+		checkSizeAndExpand();
+
+		// Start by shuffling up all the remaining elements
+		shuffleUp(index);
+
+		// Insert a new element with nullptr as value and then return
+		elements[index] = *(new element_type(key, value));
+		numElements++;
+		return elements[index].second;
+	}
+
+	// Method to check the size of the array is within bounds
+	// Expands the array if necessary
+	void checkSizeAndExpand()
+	{
+		// If the array is full
+		if (numElements == arrsize)
+		{
+			// Expand the array
+			arrsize *= 2;
+			element_type * newArr = new element_type[arrsize];
+
+			// Copy the contents and delete the old values
+			for (size_type i = 0; i < arrsize / 2; i++)
+			{
+				newArr[i] = elements[i];
+			}
+
+			// Delete the old reference
+			delete[] & elements[0];
+
+			// Replace with new array reference
+			elements = newArr;
+		}
+	}
+
+	// Method that shuffles up the elements at the pivotal point by one place
+	void shuffleUp(const int pivot)
+	{
+		// Shuffle the elements up from the current position
+		for (size_type j = numElements; j > pivot; j--)
+		{
+			elements[j] = elements[j - 1];
+		}
+	}
+
+	// Method that shuffles down the elements at the pivotal point by one place
+	void shuffleDown(const int pivot)
+	{
+		// Shuffle the elements from the current position
+		for (size_type j = pivot; j < numElements; j++)
+		{
+			elements[j] = elements[j + 1];
+		}
+	}
+
+	// Binary search for an element with the given key
+	// Returns an iterator to that element
+	// Returns an iterator to end if it does not exist
+	iterator binarySearch(key_type key, const int first, const int last)
+	{
+		// Base case - reached an array of size 1
+		// This could potentially by the correct key so we must check
+		// If it is not we need to break out after the check
+		bool lastPass = false;
+		if ((last - first) <= 1)
+		{
+			lastPass = true;
+		}
+
+		// Recursive case
+		// Find midpoint
+		const int mid = first + (last - first) / 2;
+
+		// Split the array and recurse down the correct half
+		if (!comp(elements[mid].first, key))
+		{
+			// Equality check
+			if (!comp(key, elements[mid].first))
 			{
 				// Return value
 				return iterator(this, mid);
@@ -220,221 +382,122 @@ public:
 			}
 
 			// Recurse left
-			return lastPass == true ? end() : lookupPair(key, first, mid);
+			return lastPass == true ? end() : binarySearch(key, first, mid);
 		}
 
 		// Recurse right
-		return lastPass == true ? end() : lookupPair(key, mid, last);
+		return lastPass == true ? end() : binarySearch(key, mid, last);
 	}
 
-	iterator find(KT key)
+	// Public methods
+public:
+// Returns an iterator at the beginning of the collection
+	iterator begin()
 	{
-		return lookupPair(key, 0, numElements);
+		return iterator(this, 0);
 	}
 
-	iterator erase(const iterator it) noexcept
+	// Returns an iterator at the end of the collection
+	iterator end()
 	{
+		return iterator(this, size());
+	}
+
+	// Returns an iterator at the beginning of the reverse collection
+	iterator rbegin()
+	{
+		return iterator(this, -1);
+	}
+
+	// Returns an iterator at the end of the reverse collection
+	iterator rend()
+	{
+		return iterator(this, size() - 1);
+	}
+
+	// Returns the number of elements in the array
+	size_t size() const {
+		return numElements;
+	}
+
+	// Returns the size of the array used for storing the map
+	size_type arraysize() const
+	{
+		return arrsize;
+	}
+
+	// Method that returns an iterator to the element with the given key
+	iterator find(key_type key)
+	{
+		return binarySearch(key, 0, numElements);
+	}
+
+	// Method that erases the item at the position given by the current iterator
+	// Throws an OutOfRangeException if out of range
+	iterator erase(const iterator it)
+	{
+		if (it.pos < 0 || it.pos >= numElements)
+		{
+			throw OutOfRangeException();
+		}
+
 		shuffleDown(it.pos);
 		numElements--;
 		
 		return iterator(this, it.pos);
 	}
 
+	// Method that erases the element for the given key
+	// Returns 1 if erased
+	// Returns 0 if not (does not exist)
 	size_type erase(const KT& key) noexcept
 	{
 		iterator pair = find(key);
+
 		if (pair != end())
 		{
 			shuffleDown(pair.pos);
 			numElements--;
 			return 1;
 		}
-		else
-		{
-			return 0;
-		}
+
+		return 0;
 	}
 
+	// Method that clears all elements from the map
+	// Destroys all elements
+	// Recreates empty map with same arraysize
 	void clear() noexcept
 	{
 		delete[] & elements[0];
-		elements = new pair<KT, VT>[arrsize];
+		elements = new element_type[arrsize];
 
 		numElements = 0;
 	}
 
-	size_type arraysize()
+	// Method to insert a new element
+	// 
+	pair<iterator, bool> insert(key_type key, value_type value)
 	{
-		return arrsize;
+		return insert(key, value, 0, numElements);
+	}
+
+	// Method to shrink the size of the array to the number of elements currently stored in it
+	void shrinkToFit()
+	{
+		// Create the new array
+		element_type* newArr = new element_type[numElements];
+
+		// Copy the data
+		for (size_type i = 0; i < numElements; i++)
+		{
+			newArr[i] = elements[i];
+		}
+
+		// Delete old memory objects
+		delete[] & elements[0];
+
+		// Replace with new array reference
+		elements = newArr;
 	}
 };
-
-template<class KT, class VT>
-map<KT, VT>::map()
-{
-	comp = less;
-
-	// Initialise the arrya with the efault size of 10
-	elements = new pair<KT, VT>[arrsize];
-}
-
-// Constructor
-// Takes a function pointer parameter to a comparison function used to order and search the array
-template<typename KT, typename VT>
-map<KT, VT>::map(bool (*comparator)(KT, KT))
-{
-	comp = comparator;
-
-	// Initialise the arrya with the efault size of 10
-	elements = new pair<KT, VT>[arrsize];
-}
-
-template <class KT, class VT>
-void map<KT, VT>::shrinkToFit()
-{
-	// Create the new array
-	pair<KT, VT> * newArr = new pair<KT, VT>[numElements];
-
-	// Copy the data
-	for (int i = 0; i < numElements; i++)
-	{
-		newArr[i] = elements[i];
-	}
-	
-	// Delete old memory objects
-	delete[] & elements[0];
-
-	// Replace with new array reference
-	elements = newArr;
-}
-
-// Template destructor
-template<typename KT, typename VT>
-map<KT, VT>::~map()
-{
-	// Calls the destructor for every element
-	// Deallocates the memory for the structure itself
-	delete[] elements;
-}
-
-// Ordered map.
-// Would have to use shuffle up regardless of implementation on deletions to maximise space
-// Would have O(n) insert for non-ordered
-// Still have O(n) insert with ordered map
-// Could use a binary search to "lookup" the position of the value to insert
-// This would give a O(n + logn) = O(n)
-// Worse worst case, better average cases for large data sets
-// Allows for O(logn) lookup)
-template<typename KT, typename VT>
-void map<KT, VT>::insert(KT key, VT value)
-{
-	// Expand the array if it is full
-	checkSizeAndExpand();
-
-	// If this is the first element, just insert it
-	if (numElements == 0)
-	{
-		elements[0] = *(new pair<KT, VT>(key, value));
-		numElements++;
-		return;
-	}
-
-	// Iterate until we find the position for the key
-	for (int i = 0; i <= numElements; i++)
-	{
-		if (i == numElements)
-		{
-			// Then insert as we are at the end
-			elements[i] = *(new pair<KT, VT>(key, value));
-			break;
-		}
-
-		if (!comp(elements[i].key, key))
-		{
-			// Then insert the key
-			if (i + 1 <= numElements)
-			{
-				// Then shuffle up the remaining elements
-				shuffleUp(i);
-			}
-			
-			// Then insert
-			elements[i] = *(new pair<KT, VT>(key, value));
-			break;
-		}
-
-	}
-
-	numElements++;
-}
-
-//template<typename KT, typename VT, typename CT>
-//mapit<KT,VT,CT> map<KT,VT,CT>::lookup(KT key)
-//{
-//	
-//}
-
-// TODO change to binary search
-template<typename KT, typename VT>
-VT map<KT, VT>::linearlookup(KT key)
-{
-	for (int i = 0; i < numElements; i++)
-	{
-		// If key is not less than the current one
-		if (!comp(*elements[i].key, key))
-		{
-			// Then check if it is not greater than it (equal to)
-			if (!comp(key, *elements[i].key))
-			{
-				// Return the corresponding value
-				return *elements[i].value;
-			}
-
-			// Otherwise stop looking 
-			break;
-		}
-	}
-
-	return 0;
-}
-
-template<typename KT, typename VT>
-VT map<KT, VT>::lookup(KT key)
-{
-	return binarylookup(key, 0, numElements);
-}
-
-template<typename KT, typename VT>
-VT map<KT, VT>::binarylookup(KT key, const int start, const int end)
-{
-	// Base case - reached an array of size 1
-	// This could potentially by the correct key so we must check
-	// If it is not we need to break out after the check
-	bool last = false;
-	if ((end - start) <= 1)
-	{
-		last = true;
-	}
-
-	// Recursive case
-	// Find midpoint
-	int mid = start + (end - start) / 2;
-
-	// Split the array and recurse down the correct half
-	if (!comp(elements[mid].key, key))
-	{
-		// Equality check
-		if (!comp(key, elements[mid].key))
-		{
-			// Return value
-			return elements[mid].value;
-		}
-
-		// Recurse left
-		return last == true ? 0 : binarylookup(key, start, mid);
-	}
-
-	// Recurse right
-	return last == true ? 0 : binarylookup(key, mid, end);
-}
-
