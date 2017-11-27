@@ -194,7 +194,7 @@ private:
 		}
 		catch (...)
 		{
-			throw;
+			throw UserComparisonFunctionException();
 		}
 	}
 
