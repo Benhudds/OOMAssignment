@@ -1,5 +1,4 @@
 #pragma once
-#include "stdafx.h"
 #include "mapit.h"
 #include "exceptions.h"
 
@@ -142,14 +141,6 @@ public:
 		arrsize = size;
 		// Initialise the array with the default size of 10
 		elements = new pair<KT, VT>[arrsize];
-	}
-
-	// Destructor
-	~map()
-	{
-		// Calls the destructor for every element (if there is one)
-		// Deallocates the memory for the structure itself
-		delete[] elements;
 	}
 
 	// Operators
@@ -476,7 +467,6 @@ public:
 	}
 
 	// Method to insert a new element
-	// 
 	pair<iterator, bool> insert(key_type key, value_type value)
 	{
 		return insert(key, value, 0, numElements);
@@ -485,8 +475,10 @@ public:
 	// Method to shrink the size of the array to the number of elements currently stored in it
 	void shrinkToFit()
 	{
+		arrsize = numElements;
+
 		// Create the new array
-		element_type* newArr = new element_type[numElements];
+		element_type* newArr = new element_type[arrsize];
 
 		// Copy the data
 		for (size_type i = 0; i < numElements; i++)

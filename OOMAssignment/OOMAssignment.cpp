@@ -6,21 +6,9 @@
 #include <map>
 #include "map.h"
 
-typedef bool cmpp(char a, char b);
-
-bool compfunc(char* a, char* b)
-{
-	return &a < &b;
-}
-
 bool compfunc(char a, char b)
 {
-	return a < b;
-}
-
-bool compfuncint(int a, int b)
-{
-	return a < b;
+	throw UserComparisonFunctionException();
 }
 
 struct cmprev
@@ -181,7 +169,7 @@ int main()
 	// Attempting to erase an element out of range
 	std::cout << std::endl << "Attempting to erase an element out of range in the collection" << std::endl;
 
-	auto outOfRange = adtmap.end();
+	const auto outOfRange = adtmap.end();
 	
 	try
 	{
@@ -193,68 +181,30 @@ int main()
 	{
 		std::cout << "Exception was thrown " << std::endl;
 	}
-
-
-	std::map<char, int> stlmap;
-	std::map<char, int>::iterator stlit;
-
-	map<char, int> testmap;
-	testmap['a'] = 1;
-	auto b = testmap.begin();
-	testmap['b'] = 2;
-	testmap['k'] = 11;
-	testmap['j'] = 10;
-	testmap['c'] = 3;
-	testmap['h'] = 8;
-	testmap['e'] = 5;
-	testmap['d'] = 4;
-	testmap['g'] = 7;
-	testmap['f'] = 6;
-	testmap['i'] = 9;
-	testmap['i'] = 99;
-
-	auto end = testmap.end();
-
-	for(auto it = testmap.begin(); it != testmap.end(); it++)
-	{
-		std::cout << it->first << std::endl;
-		
-	}
-
-
-	stlmap.size();
-
-	/*map<int, char> * myintmap = new map<int, char>(compfuncint);
-	myintmap->insert(0, 'a');*/
-
 	
+	// Clearing and shrinking the map
+	std::cout << std::endl << "Clearing and shrinking the map" << std::endl;
 
-	stlmap['a'] = 50;
-	stlmap['c'] = 150;
-	stlmap['b'] = 100;
-	stlmap['d'] = 200;
+	std::cout << "adtmap arraysize before clear = " << adtmap.arraysize() << std::endl;
+	adtmap.clear();
+	std::cout << "adtmap arraysize after clear = " << adtmap.arraysize() << std::endl;
+	adtmap.shrinkToFit();
+	std::cout << "adtmap arraysize after shrink = " << adtmap.arraysize() << std::endl;
 
-	stlit = stlmap.find('b');
-	if (stlit != stlmap.end())
-		stlmap.erase(stlit);
+	// Throw an exception in a user defined function
+	std::cout << std::endl << "Throwing an exception in a user defined comparison function" << std::endl;
+	adtmap = * new map<char, int>(compfunc);
 
-	for(auto it = stlmap.begin(); it != stlmap.end(); it++)
+	try
 	{
-		std::cout << it->second << std::endl;
+		adtmap['a'] = 0;
+
+		std::cout << "Exception not thrown" << std::endl;
 	}
-
-	auto it = stlmap.find('a');
-	auto ita = testmap.find('a');
-	std::cout << "&&" << it->first << std::endl;
-	std::cout << "**" << ita->first << std::endl;
-
-	ita->first;
-
-	// print content:
-	std::cout << "elements in stlmap:" << '\n';
-	std::cout << "a => " << stlmap.find('a')->second << '\n';
-	std::cout << "c => " << stlmap.find('c')->second << '\n';
-	std::cout << "d => " << stlmap.find('d')->second << '\n';
+	catch (MapException e)
+	{
+		std::cout << "Exception was thrown " << std::endl;
+	}
 
 
 	system("pause");
