@@ -2,23 +2,29 @@
 #include "mapit.h"
 #include "exceptions.h"
 
-template<typename KT, typename VT>
+// Templated pair type
+template<typename T1, typename T2>
 class pair
 {
 private:
 public:
-	KT first;
-	VT second;
-	typedef pair<KT, VT> maptype;
+	// First value
+	T1 first;
+
+	// Second value
+	T2 second;
+
+	// Self typedef
+	typedef pair<T1, T2> self_type;
 
 	// Constructor called when only a key is given
-	explicit pair(KT newKey) : first(newKey) { }
+	explicit pair(T1 newFirst) : first(newFirst) { }
 
 	// Constructor called with key and value
-	pair(KT newKey, VT newValue) : first(newKey), second(newValue) { }
+	pair(T1 newFirst, T2 newSecond) : first(newFirst), second(newSecond) { }
 
 	// Copy constructor
-	pair (const pair &obj) : first(obj.first), second(obj.second) { }
+	pair(const pair &obj) : first(obj.first), second(obj.second) { }
 
 	// Default contructor
 	pair() : first(), second() { }
@@ -27,7 +33,7 @@ public:
 	~pair() { }
 
 	// Assignment operator - copy
-	maptype& operator=(const maptype& other)
+	self_type& operator=(const self_type& other)
 	{
 		first = other.first;
 		second = other.second;
@@ -35,7 +41,7 @@ public:
 	}
 
 	// Assignment operator - value mutation
-	maptype& operator=(VT value)
+	self_type& operator=(T2 value)
 	{
 		this.second = value;
 		return *this;
@@ -225,7 +231,7 @@ private:
 
 		// Recursive case
 		// Find midpoint
-		const int mid = first + (last - first) / 2;
+		const size_type mid = first + (last - first) / 2;
 
 		// Split the array and recurse down the correct half
 		if (!comp(elements[mid].first, key))
@@ -269,7 +275,7 @@ private:
 
 		// Recursive case
 		// Find midpoint
-		const int mid = first + (last - first) / 2;
+		const size_type mid = first + (last - first) / 2;
 
 		// Split the array and recurse down the correct half
 		if (!comp(elements[mid].first, key))
@@ -347,7 +353,7 @@ private:
 	}
 
 	// Method that shuffles up the elements at the pivotal point by one place
-	void shuffleUp(const int pivot)
+	void shuffleUp(const size_type pivot)
 	{
 		// Shuffle the elements up from the current position
 		for (size_type j = numElements; j > pivot; j--)
@@ -357,7 +363,7 @@ private:
 	}
 
 	// Method that shuffles down the elements at the pivotal point by one place
-	void shuffleDown(const int pivot)
+	void shuffleDown(const size_type pivot)
 	{
 		// Shuffle the elements from the current position
 		for (size_type j = pivot; j < numElements; j++)
@@ -382,7 +388,7 @@ private:
 
 		// Recursive case
 		// Find midpoint
-		const int mid = first + (last - first) / 2;
+		const size_type mid = first + (last - first) / 2;
 
 		// Split the array and recurse down the correct half
 		if (!comp(elements[mid].first, key))

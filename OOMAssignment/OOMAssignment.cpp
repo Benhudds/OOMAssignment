@@ -240,7 +240,6 @@ int main()
 	adtmap.clear();
 	adtmap.shrinkToFit();
 
-
 	// Using custom types as the key
 	std::cout << std::endl << "Using a custom class as a key" << std::endl;
 
@@ -248,7 +247,7 @@ int main()
 	
 	std::cout << "Inserting key_class key with key a and value 1" << std::endl;
 
-	// Uses converting constructor
+	// Uses non-explicit converting constructor
 	const key_class key = 'a';
 	class_map[key] = 1;
 	
