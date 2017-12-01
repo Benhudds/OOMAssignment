@@ -49,7 +49,7 @@ public:
 };
 
 // Templated comparison function pointer
-template<typename KT>
+template<class KT>
 using cmp = bool(*)(KT k1, KT k2);
 
 // Default less than comparison operation
@@ -57,6 +57,28 @@ template<class KT>
 bool less(KT a, KT b)
 {
 	return a < b;
+}
+
+// Templated allocator function pointer
+template<class T1, class T2>
+using alloc = pair<T1, T2>*(*)(const size_t size);
+
+// Default allocation method
+template<class T1, class T2>
+pair<T1, T2>* allocate(const size_t size)
+{
+	return new pair<T1, T2>[size];
+}
+
+// Templated deallocator function pointer
+template<class T1, class T2>
+using dealloc = void(*)(pair<T1, T2>* pt);
+
+// Default deallocation method
+template<class T1, class T2>
+void deallocate (pair<T1, T2>* pt)
+{
+	delete[] pt;
 }
 
 // Templated map class
@@ -84,6 +106,9 @@ public:
 	// Uses size_t for greater indexing ranges when unsigned int may be too small (ie. on 64bit machines)
 	typedef size_t size_type;
 
+	// Allocator deallocator pair used to specify memory management method
+	typedef pair<alloc<KT, VT>, dealloc<KT, VT>> allocator_pair_type;
+
 	//Friendships
 public:
 	// Allows iterator access to private operators
@@ -94,6 +119,14 @@ private:
 	// Comparison function reference
 	// Required to return a bool with value true if the first element should precede the second
 	cmp<KT> comparator;
+
+	// Allocator function reference
+	// Required to let the user use a custom allocation method, ie. new or persistence
+	alloc<KT, VT> allocator;
+
+	// Deallocator function reference
+	// Required to let the user deallocate
+	dealloc<KT, VT> deallocator;
 
 	// Array of elements
 	// Initialized in constructor
@@ -113,9 +146,11 @@ public:
 	map()
 	{
 		comparator = less;
+		allocator = allocate;
+		deallocator = deallocate;
 
 		// Initialise the array with the default size of 10
-		elements = new element_type[arrsize];
+		elements = try_allocate(arrsize);
 	}
 
 	// Constructor
@@ -123,9 +158,35 @@ public:
 	explicit map(const size_type size)
 	{
 		comparator = less;
+		allocator = allocate;
+		deallocator = deallocate;
 
 		arrsize = size;
-		elements = new element_type[arrsize];
+		elements = try_allocate(arrsize);
+	}
+
+	// Constructor
+	// Takes an allocator deallocator pair
+	explicit map(const allocator_pair_type pair)
+	{
+		comparator = less;
+		allocator = pair.first();
+		deallocator = pair.second();
+
+		// Initialise the array with the default size of 10
+		elements = try_allocate(arrsize);
+	}
+
+	// Constructor
+	// Takes size the map should assume on creation and allocator deallocator pair
+	map(const size_type size,  const allocator_pair_type pair)
+	{
+		comparator = less;
+		allocator = pair.first();
+		deallocator = pair.second();
+
+		arrsize = size;
+		elements = try_allocate(arrsize);
 	}
 
 	// Constructor
@@ -133,9 +194,23 @@ public:
 	explicit map(const cmp<KT> cmp)
 	{
 		comparator = cmp;
+		allocator = allocate;
+		deallocator = deallocate;
 
 		// Initialise the array with the default size of 10
-		elements = new element_type[arrsize];
+		elements = try_allocate(arrsize);
+	}
+
+	// Constructor
+	// Takes a comparison operator given by the user and allocator deallocator pair
+	map(const cmp<KT> cmp, const allocator_pair_type pair)
+	{
+		comparator = cmp;
+		allocator = pair.first();
+		deallocator = pair.second();
+
+		// Initialise the array with the default size of 10
+		elements = try_allocate(arrsize);
 	}
 
 	// Constructor
@@ -143,16 +218,31 @@ public:
 	map(const cmp<KT> cmp, const size_type size)
 	{
 		comparator = cmp;
+		allocator = allocate;
+		deallocator = deallocate;
 
 		arrsize = size;
-		// Initialise the array with the default size of 10
-		elements = new element_type[arrsize];
+		// Initialise the array
+		elements = try_allocate(arrsize);
+	}
+
+	// Constructor
+	// Takes a comparison operator given by the user, allocator deallocator pair, and size the map should assume on creation
+	map(const cmp<KT> cmp, const size_type size, const allocator_pair_type pair)
+	{
+		comparator = cmp;
+		allocator = pair.first();
+		deallocator = pair.second();
+
+		arrsize = size;
+		// Initialise the array
+		elements = try_allocate(arrsize);
 	}
 
 	// Destructor
 	~map()
 	{
-		delete[] elements;
+		try_deallocate(elements);
 	}
 
 	// Operators
@@ -170,6 +260,7 @@ public:
 	// Array operator
 	// Finds the item if it exists in the map
 	// Creates a new item without a key for assignment if it does not
+	// Throws user_comparison_function_exception
 	value_type& operator[](const key_type key)
 	{
 		return findOrInsert(key, 0, numElements);
@@ -182,7 +273,7 @@ public:
 		comparator = other.comparator;
 
 		// Copy new data to a new array
-		element_type * newElements = new element_type[other.arrsize];
+		element_type * newElements = try_allocate(other.arrsize);
 
 		for(size_type i = 0; i < other.numElements; i++)
 		{
@@ -190,7 +281,7 @@ public:
 		}
 
 		// Destroy old data and deallocate
-		delete[] elements;
+		try_deallocate(elements);
 
 		// Set data to new array and copy counters
 		elements = newElements;
@@ -205,6 +296,7 @@ private:
 	// Comparator method
 	// Called when using the comparison function, be it less or one defined by the user
 	// Required in cases where the user defined function throws an exception
+	// Throws user_comparison_function_exception
 	// Should not compile if operator< not implemented for key_type
 	bool comp(key_type first, key_type second)
 	{
@@ -218,6 +310,41 @@ private:
 		}
 	}
 
+	// Allocate method
+	// Called when using the allocator function
+	// Required as the allocator is user defined code
+	// Throws bad_allocation_exception
+	element_type* try_allocate(const size_type size)
+	{
+		try
+		{
+			return  allocator(size);
+		}
+		catch (...)
+		{
+			throw bad_allocation_exception();
+		}
+	}
+
+	// Deallocate method
+	// Called when using the deallocator function
+	// Required as deallocator is user defined code
+	// Throws bad_deallocation_exception
+	void try_deallocate(element_type* pt)
+	{
+		try
+		{
+			deallocator(pt);
+		}
+		catch (...)
+		{
+			throw bad_deallocation_exception();
+		}
+	}
+
+	// Recursive insert method
+	// Recursively searches for the position the element needs to be saved at
+	// Inserts the element at that position
 	pair<iterator, bool> insert(key_type key, value_type value, const size_type first, const size_type last)
 	{
 		// Base case - reached an array of size 1
@@ -336,7 +463,7 @@ private:
 		{
 			// Expand the array
 			arrsize *= 2;
-			element_type * newArr = new element_type[arrsize];
+			element_type * newArr = try_allocate(arrsize);
 
 			// Copy the contents and delete the old values
 			for (size_type i = 0; i < arrsize / 2; i++)
@@ -345,7 +472,7 @@ private:
 			}
 
 			// Delete the old reference
-			delete[] & elements[0];
+			try_deallocate(elements);
 
 			// Replace with new array reference
 			elements = newArr;
@@ -447,13 +574,14 @@ public:
 	}
 
 	// Method that returns an iterator to the element with the given key
+    // Throws user_comparison_function_exception
 	iterator find(key_type key)
 	{
 		return binarySearch(key, 0, numElements);
 	}
 
 	// Method that erases the item at the position given by the current iterator
-	// Throws an OutOfRangeException if out of range
+	// Throws an out_of_range_exception if out of range
 	iterator erase(const iterator it)
 	{
 		if (it.pos < 0 || it.pos >= numElements)
@@ -470,7 +598,8 @@ public:
 	// Method that erases the element for the given key
 	// Returns 1 if erased
 	// Returns 0 if not (does not exist)
-	size_type erase(const KT& key) noexcept
+	// Throws user_comparison_function_exception
+	size_type erase(const KT& key)
 	{
 		iterator pair = find(key);
 
@@ -489,13 +618,14 @@ public:
 	// Recreates empty map with same arraysize
 	void clear() noexcept
 	{
-		delete[] elements;
-		elements = new element_type[arrsize];
+		try_deallocate(elements);
+		elements = try_allocate(arrsize);
 
 		numElements = 0;
 	}
 
 	// Method to insert a new element
+	// Throws user_comparison_function_exception
 	pair<iterator, bool> insert(key_type key, value_type value)
 	{
 		return insert(key, value, 0, numElements);
@@ -507,7 +637,7 @@ public:
 		arrsize = numElements;
 
 		// Create the new array
-		element_type* newArr = new element_type[arrsize];
+		element_type* newArr = try_allocate(arrsize);
 
 		// Copy the data
 		for (size_type i = 0; i < numElements; i++)
@@ -516,7 +646,7 @@ public:
 		}
 
 		// Delete old memory objects
-		delete[] & elements[0];
+		try_deallocate(elements);
 
 		// Replace with new array reference
 		elements = newArr;

@@ -1,7 +1,7 @@
 #pragma once
 
 // Forward declaration of pair
-template <class KT, class VT>
+template <class T1, class T2>
 class pair;
 
 // Forward declaration of map
@@ -87,7 +87,8 @@ public:
 	}
 
 	// Addition Assignment operator
-	self_type &operator+=(const size_type n) {
+	self_type &operator+=(const size_type n)
+	{
 		pos += n;
 		return *this;
 	}
@@ -101,7 +102,8 @@ public:
 	}
 
 	// Subtraction Assignment operator
-	self_type &operator-=(const size_type n) {
+	self_type &operator-=(const size_type n)
+	{
 		pos -= n;
 		return *this;
 	}

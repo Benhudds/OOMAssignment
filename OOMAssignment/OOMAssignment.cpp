@@ -198,8 +198,10 @@ int main()
 	std::cout << std::endl << "Clearing and shrinking the map" << std::endl;
 
 	std::cout << "adtmap arraysize before clear = " << adtmap.arraysize() << std::endl;
+	std::cout << "adtmap number of elements before clear = " << adtmap.size() << std::endl;
 	adtmap.clear();
 	std::cout << "adtmap arraysize after clear = " << adtmap.arraysize() << std::endl;
+	std::cout << "adtmap number of elements after clear = " << adtmap.size() << std::endl;
 	adtmap.shrinkToFit();
 	std::cout << "adtmap arraysize after shrink = " << adtmap.arraysize() << std::endl;
 
