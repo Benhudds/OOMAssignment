@@ -12,7 +12,7 @@ public:
 	typedef pair<KT, VT> maptype;
 
 	// Constructor called when only a key is given
-	pair(KT newKey) : first(newKey) { }
+	explicit pair(KT newKey) : first(newKey) { }
 
 	// Constructor called with key and value
 	pair(KT newKey, VT newValue) : first(newKey), second(newValue) { }
@@ -129,7 +129,7 @@ public:
 		comparator = cmp;
 
 		// Initialise the array with the default size of 10
-		elements = new pair<KT, VT>[arrsize];
+		elements = new element_type[arrsize];
 	}
 
 	// Constructor
@@ -140,7 +140,13 @@ public:
 
 		arrsize = size;
 		// Initialise the array with the default size of 10
-		elements = new pair<KT, VT>[arrsize];
+		elements = new element_type[arrsize];
+	}
+
+	// Destructor
+	~map()
+	{
+		delete[] elements;
 	}
 
 	// Operators
@@ -164,10 +170,27 @@ public:
 	}
 
 	// Assignment operator
-	// Used in conjunction with array operator
-	// Assigns the parameterized value to the value returned by array operator
-	self_type& operator=(value_type value)
+	self_type& operator=(const self_type& other)
 	{
+		// Copy comparison function
+		comparator = other.comparator;
+
+		// Copy new data to a new array
+		element_type * newElements = new element_type[other.arrsize];
+
+		for(size_type i = 0; i < other.numElements; i++)
+		{
+			newElements[i] = other.elements[i];
+		}
+
+		// Destroy old data and deallocate
+		delete[] elements;
+
+		// Set data to new array and copy counters
+		elements = newElements;
+		numElements = other.numElements;
+		arrsize = other.arrsize;
+
 		return *this;
 	}
 
@@ -185,7 +208,7 @@ private:
 		}
 		catch (...)
 		{
-			throw UserComparisonFunctionException();
+			throw user_comparison_function_exception();
 		}
 	}
 
@@ -195,7 +218,7 @@ private:
 		// This could potentially by the correct key so we must check
 		// If it is not we need to break out after the check
 		bool lastPass = false;
-		if ((last - first) <= 1)
+		if (last - first <= 1)
 		{
 			lastPass = true;
 		}
@@ -239,7 +262,7 @@ private:
 		// This could potentially by the correct key so we must check
 		// If it is not we need to break out after the check
 		bool lastPass = false;
-		if ((last - first) <= 1)
+		if (last - first <= 1)
 		{
 			lastPass = true;
 		}
@@ -277,13 +300,13 @@ private:
 		shuffleUp(index);
 
 		// Insert a new element with nullptr as value and then return
-		elements[index] = *(new element_type(key));
+		elements[index] = element_type(key);
 		numElements++;
 		return elements[index].second;
 	}
 
-	// Method to insert a new element type using the given key and the index
-	// Returns a value type with default value
+	// Method to insert a new element type using the given key, value and the index
+	// Returns a value type with the given value
 	value_type& insertElement(const size_type index, key_type key, value_type value)
 	{
 		// Ensure there is space to insert
@@ -293,7 +316,7 @@ private:
 		shuffleUp(index);
 
 		// Insert a new element with nullptr as value and then return
-		elements[index] = *(new element_type(key, value));
+		elements[index] = element_type(key, value);
 		numElements++;
 		return elements[index].second;
 	}
@@ -352,7 +375,7 @@ private:
 		// This could potentially by the correct key so we must check
 		// If it is not we need to break out after the check
 		bool lastPass = false;
-		if ((last - first) <= 1)
+		if (last - first <= 1)
 		{
 			lastPass = true;
 		}
@@ -429,9 +452,9 @@ public:
 	{
 		if (it.pos < 0 || it.pos >= numElements)
 		{
-			throw OutOfRangeException();
+			throw out_of_range_exception();
 		}
-
+		
 		shuffleDown(it.pos);
 		numElements--;
 		
@@ -460,7 +483,7 @@ public:
 	// Recreates empty map with same arraysize
 	void clear() noexcept
 	{
-		delete[] & elements[0];
+		delete[] elements;
 		elements = new element_type[arrsize];
 
 		numElements = 0;

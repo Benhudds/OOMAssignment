@@ -6,18 +6,30 @@
 #include <map>
 #include "map.h"
 
-bool compfunc(char a, char b)
+bool exception_func(char a, char b)
 {
-	throw UserComparisonFunctionException();
+	throw user_comparison_function_exception();
 }
 
-struct cmprev
+
+class key_class
 {
-	bool operator()(const char *a, const char *b) const
+public:
+	char char_key;
+
+	key_class() {}
+
+	key_class(const char init)
 	{
-		return &b < &a;
+		char_key = init;
 	}
 };
+
+
+bool key_class_comp_func(key_class a, key_class b)
+{
+	return a.char_key < b.char_key;
+}
 
 int main()
 {
@@ -154,14 +166,14 @@ int main()
 	// Use of iterator
 	std::cout << std::endl << "Use of iterator" << std::endl;
 
-	for(auto it = adtmap.begin(); it != adtmap.end(); it++)
+	for(auto it = adtmap.begin(); it != adtmap.end(); ++it)
 	{
 		std::cout << "key = " << it->first << " and value = " << it->second << std::endl;
 	}
 
 	std::cout << "reverse" << std::endl;
 
-	for(auto it = adtmap.rend(); it != adtmap.rbegin(); it--)
+	for(auto it = adtmap.rend(); it != adtmap.rbegin(); --it)
 	{
 		std::cout << "key = " << it->first << " and value = " << it->second << std::endl;
 	}
@@ -177,7 +189,7 @@ int main()
 
 		std::cout << "Exception not thrown" << std::endl;
 	}
-	catch (MapException e)
+	catch (map_exception e)
 	{
 		std::cout << "Exception was thrown " << std::endl;
 	}
@@ -193,21 +205,62 @@ int main()
 
 	// Throw an exception in a user defined function
 	std::cout << std::endl << "Throwing an exception in a user defined comparison function" << std::endl;
-	adtmap = * new map<char, int>(compfunc);
 
+	adtmap = map<char, int>(exception_func);
 	try
 	{
 		adtmap['a'] = 0;
 
 		std::cout << "Exception not thrown" << std::endl;
 	}
-	catch (MapException e)
+	catch (map_exception e)
 	{
 		std::cout << "Exception was thrown " << std::endl;
 	}
 
+	// Mutation of values
+	std::cout << std::endl << "Mutation of values" << std::endl;
+
+	adtmap = map<char, int>();
+
+	adtmap['a'] = 0;
+	std::cout << "Value for key a = " << adtmap['a'] << std::endl;
+	adtmap['a'] = 1;
+	std::cout << "Value for key a = " << adtmap['a'] << std::endl;
+
+	// Attempting to add duplicate key
+	std::cout << std::endl << "Attempting to add a duplicate key a with value 2" << std::endl;
+
+	std::cout << "Current number of elements = " << adtmap.size() << std::endl;
+	auto return_val = adtmap.insert('a', 2);
+	std::cout << "New number of elements = " << adtmap.size() << std::endl;
+	std::cout << "Boolean value returned is " << return_val.second << std::endl;
+	std::cout << "Iterator returned has key " << return_val.first->first << " and value " << return_val.first->second << std::endl;
+
+	adtmap.clear();
+	adtmap.shrinkToFit();
+
+
+	// Using custom types as the key
+	std::cout << std::endl << "Using a custom class as a key" << std::endl;
+
+	auto class_map = map<key_class, int>(key_class_comp_func);
+	
+	std::cout << "Inserting key_class key with key a and value 1" << std::endl;
+
+	// Uses converting constructor
+	const key_class key = 'a';
+	class_map[key] = 1;
+	
+	std::cout << "Value stored for key_class with key a is " << class_map[key] << std::endl;
+
+	class_map.clear();
+	class_map.shrinkToFit();
+
+	// Destruction when allocating on heap
+	const auto ptradtmap = new map<char, int>(exception_func);
+	delete ptradtmap;
 
 	system("pause");
 	return 0;
 }
-

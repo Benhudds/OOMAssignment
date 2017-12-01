@@ -1,22 +1,22 @@
 #pragma once
 
 
-class MapException
+class map_exception
 {
 private:
 	char* detail;
 public:
-	MapException()
+	map_exception()
 	{
 		detail = "";
 	}
 
-	MapException(char* newDetail)
+	explicit map_exception(char* newDetail)
 	{
 		detail = newDetail;
 	}
 
-	~MapException() {}
+	~map_exception() {}
 
 	char* what() const
 	{
@@ -24,16 +24,16 @@ public:
 	}
 };
 
-class OutOfRangeException : public MapException
+class out_of_range_exception : public map_exception
 {
 public:
-	OutOfRangeException() {}
-	OutOfRangeException(char* detail) : MapException(detail) {}
+	out_of_range_exception() {}
+	explicit out_of_range_exception(char* detail) : map_exception(detail) {}
 };
 
-class UserComparisonFunctionException : public MapException
+class user_comparison_function_exception : public map_exception
 {
 public:
-	UserComparisonFunctionException() {}
-	UserComparisonFunctionException(char* detail) : MapException(detail) {}
+	user_comparison_function_exception() {}
+	explicit user_comparison_function_exception(char* detail) : map_exception(detail) {}
 };
