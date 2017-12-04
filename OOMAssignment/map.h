@@ -239,6 +239,24 @@ public:
 		elements = try_allocate(arrsize);
 	}
 
+	// Copy constructor
+	map(const self_type& other)
+	{
+		comparator = other.comparator;
+		allocator = other.allocator;
+		deallocator = other.deallocator;
+
+		arrsize = other.arrsize;
+		numElements = other.numElements;
+
+		elements = try_allocate(arrsize);
+
+		for(size_type i = 0; i < numElements; i++)
+		{
+			elements[i] = other.elements[i];
+		}
+	}
+
 	// Destructor
 	~map()
 	{
@@ -463,6 +481,7 @@ private:
 		{
 			// Expand the array
 			arrsize *= 2;
+
 			element_type * newArr = try_allocate(arrsize);
 
 			// Copy the contents and delete the old values
@@ -538,7 +557,7 @@ private:
 
 	// Public methods
 public:
-// Returns an iterator at the beginning of the collection
+	// Returns an iterator at the beginning of the collection
 	iterator begin()
 	{
 		return iterator(this, 0);
@@ -634,7 +653,7 @@ public:
 	// Method to shrink the size of the array to the number of elements currently stored in it
 	void shrinkToFit()
 	{
-		arrsize = numElements;
+		arrsize = numElements == 0 ? 1 : numElements;
 
 		// Create the new array
 		element_type* newArr = try_allocate(arrsize);
